@@ -1,0 +1,128 @@
+FastAPI веб-застосунок з валідацією запитів
+Частина 1: Розробка веб-застосунку
+Python
+from fastapi import FastAPI, HTTPException, Request
+from pydantic import BaseModel
+from typing import List, Dict
+
+app = FastAPI()
+
+# Словник для зберігання постів
+posts = {
+    1: {"id": 1, "title": "Перший пост", "content": "Це контент першого посту"},
+    2: {"id": 2, "title": "Другий пост", "content": "Це контент другого посту"},
+}
+
+# Словник для статистики запитів
+request_counts = {
+    "/version": 0,
+    "/posts": 0,
+    "/stats": 0,
+}
+
+
+class PostSchema(BaseModel):
+    title: str
+    content: str
+
+
+@app.get("/version")
+def get_version():
+    """
+    Версія веб-застосунку
+    """
+    request_counts["/version"] += 1
+    return {"version": "1.0"}
+
+
+@app.get("/posts")
+def get_all_posts():
+    """
+    Отримати всі пости
+    """
+    request_counts["/posts"] += 1
+    return list(posts.values())
+
+
+@app.post("/posts")
+def create_post(post: PostSchema):
+    """
+    Створити новий пост
+    """
+    request_counts["/posts"] += 1
+    new_id = max(posts.keys()) + 1
+    posts[new_id] = {"id": new_id, **post.dict()}
+    return {"message": "Пост успішно створено", "post": posts[new_id]}
+
+
+@app.put("/posts/{post_id}")
+def update_post(post_id: int, post: PostSchema):
+    """
+    Оновити існуючий пост
+    """
+    request_counts["/posts"] += 1
+    if post_id not in posts:
+        raise HTTPException(status_code=404, detail="Пост не знайдено")
+
+    posts[post_id].update(post.dict())
+    return {"message": "Пост успішно оновлено", "post": posts[post_id]}
+
+
+@app.delete("/posts/{post_id}")
+def delete_post(post_id: int):
+    """
+    Видалити пост
+    """
+    request_counts["/posts"] += 1
+    if post_id not in posts:
+        raise HTTPException(status_code=404, detail="Пост не знайдено")
+
+    del posts[post_id]
+    return {"message": "Пост успішно видалено"}
+
+
+@app.get("/stats")
+def get_request_stats():
+    """
+    Отримати статистику запитів
+    """
+    request_counts["/stats"] += 1
+    return request_counts
+Використовуйте цей код обачно.
+content_copy
+Частина 2: Тестування
+1. Тестування GET /version
+
+Python
+import requests
+
+response = requests.get("http://localhost:8000/version")
+assert response.status_code == 200
+assert response.json() == {"version": "1.0"}
+Використовуйте цей код обачно.
+content_copy
+2. Тестування GET /posts
+
+Python
+import requests
+
+response = requests.get("http://localhost:8000/posts")
+assert response.status_code == 200
+assert response.json() == [
+    {"id": 1, "title": "Перший пост", "content": "Це контент першого посту"},
+    {"id": 2, "title": "Другий пост", "content": "Це контент другого посту"},
+]
+Використовуйте цей код обачно.
+content_copy
+3. Тестування POST /posts
+
+Python
+import requests
+
+data = {"title": "Новий пост", "content": "Це контент нового посту"}
+response = requests.post("http://localhost:8000/posts", json=data)
+assert response.status_code == 201
+assert response.json() == {
+    "message": "Пост успішно створено",
+    "post": {"id": 3, "title": "Новий пост", "content": "Це контент нового посту"},
+}
